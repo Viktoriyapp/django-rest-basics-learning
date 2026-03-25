@@ -1,13 +1,13 @@
 from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render
 from rest_framework import status
-from rest_framework.generics import ListCreateAPIView, get_object_or_404
+from rest_framework.generics import ListCreateAPIView, get_object_or_404, RetrieveUpdateDestroyAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from books.models import Book
-from books.serializers import BookSerializer
+from books.models import Book, Review
+from books.serializers import BookSerializer, ReviewSerializer
 
 
 # Create your views here.
@@ -15,6 +15,16 @@ from books.serializers import BookSerializer
 class HomeView(APIView):
     def get(self, request):
         return HttpResponse({"text": "helloo!"}, content_type="application/json")
+
+
+class ReviewListCreateView(ListCreateAPIView):
+    queryset = Review.objects.select_related('book').all()
+    serializer_class = ReviewSerializer
+
+
+class ReviewRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
+    queryset = Review.objects.select_related('book').all()
+    serializer_class = ReviewSerializer
 
 
 # class BookListCreateView(ListCreateAPIView):
