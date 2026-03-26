@@ -2,11 +2,13 @@ from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render
 from rest_framework import status
 from rest_framework.generics import ListCreateAPIView, get_object_or_404, RetrieveUpdateDestroyAPIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from books.models import Book, Review
+from books.permissions import IsOwner
 from books.serializers import BookSerializer, ReviewSerializer
 
 
@@ -23,6 +25,7 @@ class ReviewListCreateView(ListCreateAPIView):
 
 
 class ReviewRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = Review.objects.select_related('book').all()
     serializer_class = ReviewSerializer
 
@@ -44,30 +47,38 @@ class BookListCreateView(APIView):
         return Response(data=serializer.data, status=status.HTTP_201_CREATED)
 
 
-class BookDetailView(APIView):
-    def get_object(self, pk: int) -> Book:
-        return get_object_or_404(Book, pk=pk)
+class BookDetailView(RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsOwner]
+    queryset = Book.objects.all()
+    serializer_class = BookSerializer
 
-    def get(self, request: Request, pk: int) -> Response:
-        book = self.get_object(pk=pk)
-        serializer = BookSerializer(book)
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
 
-    def put(self, request: Request, pk: int) -> Response: # we edit the whole object, without missing values
-        book = self.get_object(pk=pk)
-        serializer = BookSerializer(book, data=request.data) # the book instance and the new data to add
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
+# class BookDetailView(APIView):
+#     def get_object(self, pk: int) -> Book:
+#         return get_object_or_404(Book, pk=pk)
+#
+#     def get(self, request: Request, pk: int) -> Response:
+#         book = self.get_object(pk=pk)
+#         serializer = BookSerializer(book)
+#         return Response(data=serializer.data, status=status.HTTP_200_OK)
+#
+#     def put(self, request: Request, pk: int) -> Response: # we edit the whole object, without missing values
+#         book = self.get_object(pk=pk)
+#         serializer = BookSerializer(book, data=request.data) # the book instance and the new data to add
+#         serializer.is_valid(raise_exception=True)
+#         serializer.save()
+#         return Response(data=serializer.data, status=status.HTTP_200_OK)
+#
+#     def patch(self, request: Request, pk: int) -> Response: # can change only one thing(partial), without giving the whole object but only a part of it
+#         book = self.get_object(pk=pk)
+#         serializer = BookSerializer(book, data=request.data, partial=True)
+#         serializer.is_valid(raise_exception=True)
+#         serializer.save()
+#         return Response(data=serializer.data, status=status.HTTP_200_OK)
+#
+#     def delete(self, request: Request, pk: int) -> Response: # we dont need serializer here
+#         book = self.get_object(pk=pk)
+#         book.delete()
+#         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def patch(self, request: Request, pk: int) -> Response: # can change only one thing(partial), without giving the whole object but only a part of it
-        book = self.get_object(pk=pk)
-        serializer = BookSerializer(book, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
 
-    def delete(self, request: Request, pk: int) -> Response: # we dont need serializer here
-        book = self.get_object(pk=pk)
-        book.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
